@@ -1,7 +1,5 @@
 # op
 
-open file in wsl using explorer.exe in windows.
-
 > **Note**: 
 > 
 > If you got an error every first time 
@@ -19,6 +17,7 @@ open file in wsl using explorer.exe in windows.
 > 
 > More discussions about this error are in [here](https://stackoverflow.com/questions/75819833/cli-tool-written-in-rust-occurs-error-when-using-completion-of-fish-at-the-first).
 
+open file in wsl using explorer.exe in windows.
 
 Here is its minimal frame (src/main.rs):
 
