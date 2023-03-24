@@ -14,7 +14,7 @@ fn main() {
     // 1. convert args[1] to Path
     let path_str = deal_kinds_of_path(args[1].clone());
     let path = Path::new(&path_str);
-    println!("Oops {:?}", path); // This code is for debug.
+    // eprintln!("Oops {:?}", path); // This code is for debug.
     if !path.exists() {
         ep("the directory does not exist");
         exit(1);
