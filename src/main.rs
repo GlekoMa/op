@@ -54,27 +54,6 @@ fn main() {
             exit(1)
         });
 
-    // *. if the file make people happy, print a happy wish.
-    if path.extension().is_none() {
-    } else {
-        let ext = path
-            .extension()
-            .unwrap_or_else(|| {
-                ep("parse `path.extension`");
-                exit(1);
-            })
-            .to_str()
-            .unwrap_or_else(|| {
-                ep("convert ext (Path) to str");
-                exit(1);
-            });
-        let happies = vec!["mp4", "mkv", "mp3", "flac", "wav"];
-        if happies.iter().any(|e| &ext == e) {
-            println!("{}", "Happy day! 😊".blue());
-        };
-    };
-}
-
 fn ep(msg: &str) {
     eprintln!("{}: {}", "error".red(), msg);
 }
