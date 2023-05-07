@@ -50,7 +50,13 @@ fn main() {
         .unwrap_or_else(|| {
             ep("cann't convert file_name (Path) to str");
             exit(1);
-        });
+        })
+        // deal with special char (s.g. Donna Donna.mp3)
+        .replace("(", r"\(")
+        .replace(")", r"\)")
+        .split(" ")
+        .collect::<Vec<&str>>()
+        .join(r"\");
 
     // 3. cd parent path
     env::set_current_dir(parent).unwrap_or_else(|_err| {
