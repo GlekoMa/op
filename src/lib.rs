@@ -1,10 +1,6 @@
 use colored::Colorize;
 use serde::Deserialize;
-use std::collections::HashMap;
-use std::env;
-use std::fs;
-use std::path::Path;
-use std::process::exit;
+use std::{collections::HashMap, env, fs, path::Path, process::exit};
 
 #[derive(Deserialize)]
 struct Config {

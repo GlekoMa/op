@@ -1,10 +1,10 @@
 # op
 
-`op` can open file in wsl using explorer.exe of windows.
+`op` can open file in wsl using exe (support custom command, default explorer.exe) of windows.
 
 ## Config
 
-`op` support config command using toml format (by read ~/.config/op/config.toml).
+`op` support custom command using toml format (~/.config/op/config.toml).
 Here is the example:
 
 ```toml
