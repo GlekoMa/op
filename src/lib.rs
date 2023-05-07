@@ -93,3 +93,13 @@ pub fn deal_kinds_of_path(mut p: String) -> String {
         p.to_owned()
     }
 }
+
+// deal with special char (s.g. Donna Donna.mp3)
+pub fn deal_filename(file_name_raw: &str) -> String {
+    file_name_raw
+        .replace("(", r"\(")
+        .replace(")", r"\)")
+        .split(" ")
+        .collect::<Vec<&str>>()
+        .join(r"\")
+}

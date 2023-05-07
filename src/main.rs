@@ -1,4 +1,5 @@
 use colored::Colorize;
+use op::deal_filename;
 use std::{
     env,
     path::Path,
@@ -20,17 +21,8 @@ fn main() {
 
     // 2. parse path to parent and file_name
     let parent = path.parent().unwrap();
-    let file_name = path
-        .file_name()
-        .unwrap()
-        .to_str()
-        .unwrap()
-        // deal with special char (s.g. Donna Donna.mp3)
-        .replace("(", r"\(")
-        .replace(")", r"\)")
-        .split(" ")
-        .collect::<Vec<&str>>()
-        .join(r"\");
+    let file_name_raw = path.file_name().unwrap().to_str().unwrap();
+    let file_name = deal_filename(file_name_raw);
 
     // 3. cd parent path
     env::set_current_dir(parent).unwrap();
