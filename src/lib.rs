@@ -1,6 +1,12 @@
 use colored::Colorize;
+use is_terminal::IsTerminal as _;
 use serde::Deserialize;
-use std::{collections::HashMap, env, fs, path::Path, process::exit};
+use std::{
+    collections::HashMap,
+    env, fs,
+    io::{stdin, Read},
+    path::Path,
+};
 
 #[derive(Deserialize)]
 struct Config {
@@ -16,14 +22,8 @@ struct Custom {
 
 impl Config {
     fn new(config_path: &str) -> Config {
-        let contents = fs::read_to_string(config_path).unwrap_or_else(|_err| {
-            ep("cann't read 'config.toml' path");
-            exit(1);
-        });
-        toml::from_str(&contents).unwrap_or_else(|_err| {
-            ep("cann't parse 'config.toml' to str");
-            exit(1);
-        })
+        let contents = fs::read_to_string(config_path).unwrap();
+        toml::from_str(&contents).unwrap()
     }
 }
 
@@ -49,18 +49,7 @@ pub fn autocmd(file_path: &Path, config_path: &str) -> String {
         let config = parse(config_path);
         if file_path.is_file() {
             for (key, value) in &config {
-                let extension = file_path
-                    .extension()
-                    .unwrap_or_else(|| {
-                        ep("cann't parse `path.extension`");
-                        exit(1);
-                    })
-                    .to_str()
-                    .unwrap_or_else(|| {
-                        ep("cann't convert extension (Path) to str");
-                        exit(1);
-                    })
-                    .to_owned();
+                let extension = file_path.extension().unwrap().to_str().unwrap().to_owned();
                 if value.contains(&extension) {
                     cmd = key.to_string();
                 }
@@ -70,49 +59,37 @@ pub fn autocmd(file_path: &Path, config_path: &str) -> String {
     cmd
 }
 
-pub fn ep(msg: &str) {
-    eprintln!("{}: {}", "[op error]".red(), msg);
+pub fn deal_pipe(args: &mut Vec<String>) {
+    if stdin().is_terminal() {
+        if args.len() == 1 {
+            eprintln!("{}: need path argument", "[op error]".red());
+            std::process::exit(1);
+        }
+    // support pipe
+    } else {
+        let mut buffer = String::new();
+        stdin().read_to_string(&mut buffer).unwrap();
+        let arg_path: Vec<&str> = buffer.split("\n").collect();
+        // if stdin is not single (not recommend), use first (s.g. ls)
+        args.insert(1, arg_path[0].to_owned());
+    }
 }
 
 pub fn deal_kinds_of_path(mut p: String) -> String {
-    // when last char is '/', delete it
-    // if not, type "op code/" will raise an error
-    // because there is no parent path
-    let p_last_char = p.chars().last().unwrap_or_else(|| {
-        ep("path is empty");
-        exit(1);
-    });
+    // s.g. type "op code/" equals "op code"
+    let p_last_char = p.chars().last().unwrap();
     if p_last_char == '/' {
         p.pop();
     }
 
-    // detail
     if p.contains('~') {
-        // type 'op ~' = type 'op /home/gleko/'
-        // because my user name is gleko
-        p.replace('~', "/home/gleko").to_owned()
+        p.replace('~', &env::var("HOME").unwrap()).to_owned()
     } else if p == "." {
-        // type 'op .', open current dir
-        getcwd()
+        env::current_dir().unwrap().to_str().unwrap().to_owned()
     } else if !p.contains('/') {
-        // type 'op code' = type 'op ./code'
+        // s.g. type 'op code' equals 'op ./code'
         format!("./{p}")
     } else {
-        // general situation
         p.to_owned()
     }
-}
-
-pub fn getcwd() -> String {
-    env::current_dir()
-        .unwrap_or_else(|_err| {
-            ep("cann't get current_dir");
-            exit(1);
-        })
-        .to_str()
-        .unwrap_or_else(|| {
-            ep("cann't convert current_dir (Path) to str");
-            exit(1);
-        })
-        .to_owned()
 }
