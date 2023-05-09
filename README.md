@@ -2,6 +2,12 @@
 
 `op` can open file in wsl using exe (support custom command, default explorer.exe) of windows.
 
+## Features
+
+- pipe support
+- custom command support
+- faster than shell script
+
 ## Config
 
 `op` support custom command using toml format (~/.config/op/config.toml).
@@ -11,12 +17,12 @@ Here is the example:
 [[custom]]
 command = "vlc.exe"
 subcommands = ["play-and-exit", "fullscreen"]
-filetype = ["mp4", "mkv"]
+filetypes = ["mp4", "mkv"]
 
 [[custom]]
 command = "foobar2000.exe"
 subcommands = []
-filetype = ["mp3", "flac", "wav"]
+filetypes = ["mp3", "flac", "wav"]
 ```
 
 ## Frame

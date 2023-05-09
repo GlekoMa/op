@@ -5,11 +5,11 @@ use std::{
     collections::HashMap,
     env, fs,
     io::{stdin, Read},
-    path::Path,
+    process,
 };
 
 #[derive(Deserialize)]
-struct Config {
+pub struct Config {
     custom: Vec<Custom>,
 }
 
@@ -17,80 +17,94 @@ struct Config {
 struct Custom {
     command: String,
     subcommands: Vec<String>,
-    filetype: Vec<String>,
+    filetypes: Vec<String>,
 }
 
 impl Config {
-    fn new(config_path: &str) -> Config {
+    pub fn new(config_path: &str) -> Config {
         let contents = fs::read_to_string(config_path).unwrap();
-        toml::from_str(&contents).unwrap()
+        toml::from_str(&contents).unwrap_or_else(|err| {
+            eprintln!("{}: {}", "[op error]".red(), err);
+            process::exit(1);
+        })
     }
-}
-
-fn parse(config_path: &str) -> HashMap<String, Vec<String>> {
-    let config = Config::new(config_path);
-    let mut custom_commands = HashMap::new();
-    for custom in &config.custom {
-        let command = &custom.command;
-        let subcommands = custom.subcommands.join(" --");
-        let complete_command = if subcommands == "" {
-            command.to_string()
-        } else {
-            format!("{command} --{subcommands}")
-        };
-        custom_commands.insert(complete_command, custom.filetype.clone());
+    pub fn parse(self) -> HashMap<String, Vec<String>> {
+        let mut custom_cmds = HashMap::new();
+        for entry in &self.custom {
+            let cmd = &entry.command;
+            let subcmds = entry.subcommands.join(" --");
+            let cmd_complete = if subcmds == "" {
+                cmd.to_string()
+            } else {
+                format!("{cmd} --{subcmds}")
+            };
+            custom_cmds.insert(cmd_complete, entry.filetypes.clone());
+        }
+        custom_cmds
     }
-    custom_commands
-}
+    pub fn auto_select_cmd(self, file_type: &str) -> String {
+        let mut cmd = String::from("explorer.exe");
+        let custom_cmds = self.parse();
 
-pub fn autocmd(file_path: &Path, config_path: &str) -> String {
-    let mut cmd = String::from("explorer.exe");
-    if Path::new(config_path).exists() {
-        let config = parse(config_path);
-        if file_path.is_file() {
-            for (key, value) in &config {
-                let extension = file_path.extension().unwrap().to_str().unwrap().to_owned();
-                if value.contains(&extension) {
-                    cmd = key.to_string();
+        let mut flag = 0;
+        for (cmd_complete, file_types) in &custom_cmds {
+            if file_types.contains(&file_type.to_owned()) {
+                if flag == 1 {
+                    eprintln!(
+                        "{}: filetype matches multiple commands in config.toml",
+                        "[op error]".red()
+                    );
+                    process::exit(1);
+                } else {
+                    cmd = cmd_complete.to_owned();
+                    flag = 1;
                 }
             }
         }
+        cmd
     }
-    cmd
 }
 
-pub fn deal_pipe(args: &mut Vec<String>) {
+pub fn deal_args(args: &mut Vec<String>) {
     if stdin().is_terminal() {
         if args.len() == 1 {
             eprintln!("{}: need path argument", "[op error]".red());
-            std::process::exit(1);
+            process::exit(1);
         }
-    // support pipe
     } else {
+        // if the args are passed through the pipe, args.len() will be 1
+        // thus need to read from stdin and insert it to original args as path
         let mut buffer = String::new();
         stdin().read_to_string(&mut buffer).unwrap();
-        let arg_path: Vec<&str> = buffer.split("\n").collect();
-        // if stdin is not single (not recommend), use first (s.g. ls)
-        args.insert(1, arg_path[0].to_owned());
+        let args_real: Vec<&str> = buffer.split("\n").collect();
+        if args_real.len() > 2 {
+            eprintln!("{}: don't support multiple path", "[op error]".red());
+            process::exit(1);
+        } else {
+            args.insert(1, args_real[0].to_owned());
+        }
     }
 }
 
-pub fn deal_kinds_of_path(mut p: String) -> String {
+pub fn deal_kinds_of_path(mut path: String) -> String {
     // s.g. type "op code/" equals "op code"
-    let p_last_char = p.chars().last().unwrap();
-    if p_last_char == '/' {
-        p.pop();
+    let path_last_char = path.chars().last().unwrap_or_else(|| {
+        eprintln!("{}: need path argument", "[op error]".red());
+        process::exit(1);
+    });
+    if path_last_char == '/' {
+        path.pop();
     }
 
-    if p.contains('~') {
-        p.replace('~', &env::var("HOME").unwrap()).to_owned()
-    } else if p == "." {
+    if path.contains('~') {
+        path.replace('~', &env::var("HOME").unwrap()).to_owned()
+    } else if path == "." {
         env::current_dir().unwrap().to_str().unwrap().to_owned()
-    } else if !p.contains('/') {
+    } else if !path.contains('/') {
         // s.g. type 'op code' equals 'op ./code'
-        format!("./{p}")
+        format!("./{path}")
     } else {
-        p.to_owned()
+        path.to_owned()
     }
 }
 
@@ -101,5 +115,5 @@ pub fn deal_filename(file_name_raw: &str) -> String {
         .replace(")", r"\)")
         .split(" ")
         .collect::<Vec<&str>>()
-        .join(r"\")
+        .join(r"\ ")
 }
