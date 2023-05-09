@@ -22,7 +22,10 @@ struct Custom {
 
 impl Config {
     pub fn new(config_path: &str) -> Config {
-        let contents = fs::read_to_string(config_path).unwrap();
+        let contents = fs::read_to_string(config_path).unwrap_or_else(|err| {
+            eprintln!("{}: {}", "[op error]".red(), err);
+            process::exit(1);
+        });
         toml::from_str(&contents).unwrap_or_else(|err| {
             eprintln!("{}: {}", "[op error]".red(), err);
             process::exit(1);
@@ -75,7 +78,10 @@ pub fn deal_args(args: &mut Vec<String>) {
         // if the args are passed through the pipe, args.len() will be 1
         // thus need to read from stdin and insert it to original args as path
         let mut buffer = String::new();
-        stdin().read_to_string(&mut buffer).unwrap();
+        stdin().read_to_string(&mut buffer).unwrap_or_else(|err| {
+            eprintln!("{}: {}", "[op error]".red(), err);
+            process::exit(1);
+        });
         let args_real: Vec<&str> = buffer.split("\n").collect();
         if args_real.len() > 2 {
             eprintln!("{}: don't support multiple path", "[op error]".red());
@@ -86,7 +92,7 @@ pub fn deal_args(args: &mut Vec<String>) {
     }
 }
 
-pub fn deal_kinds_of_path(mut path: String) -> String {
+pub fn deal_kinds_of_path(mut path: String) -> Option<String> {
     // s.g. type "op code/" equals "op code"
     let path_last_char = path.chars().last().unwrap_or_else(|| {
         eprintln!("{}: need path argument", "[op error]".red());
@@ -96,16 +102,30 @@ pub fn deal_kinds_of_path(mut path: String) -> String {
         path.pop();
     }
 
-    if path.contains('~') {
-        path.replace('~', &env::var("HOME").unwrap()).to_owned()
+    let path_done = if path.contains('~') {
+        path.replace(
+            '~',
+            &env::var("HOME").unwrap_or_else(|err| {
+                eprintln!("{}: {}", "[op error]".red(), err);
+                process::exit(1);
+            }),
+        )
+        .to_owned()
     } else if path == "." {
-        env::current_dir().unwrap().to_str().unwrap().to_owned()
+        env::current_dir()
+            .unwrap_or_else(|err| {
+                eprintln!("{}: {}", "[op error]".red(), err);
+                process::exit(1);
+            })
+            .to_str()?
+            .to_owned()
     } else if !path.contains('/') {
         // s.g. type 'op code' equals 'op ./code'
         format!("./{path}")
     } else {
         path.to_owned()
-    }
+    };
+    Some(path_done)
 }
 
 // deal with special char (s.g. Donna Donna.mp3)
