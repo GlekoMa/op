@@ -21,8 +21,18 @@ fn main() {
     };
 
     // 2. parse path to parent and file_name
-    let parent = file_path.parent().unwrap();
-    let file_name_raw = file_path.file_name().unwrap().to_str().unwrap();
+    let parent = file_path.parent().unwrap_or_else(||{
+        eprintln!("{}: cann't parse parent directory", "[op error]".red());
+        exit(1);
+    });
+    let file_name_raw = file_path
+        .file_name()
+        .unwrap_or_else(|| {
+            eprintln!("{}: cann't parse file name", "[op error]".red());
+            exit(1);
+        })
+        .to_str()
+        .unwrap();
     let file_name = op::deal_filename(file_name_raw);
 
     // 3. cd parent path
