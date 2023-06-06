@@ -1,11 +1,10 @@
 # op
 
-`op` can open file in wsl using exe (support custom command, default explorer.exe) of windows.
+`op` can open file using custom command (default explorer.exe) in wsl.
 
 ## Features
 
 - pipe support
-- custom command support
 - faster than shell script
 
 ## Config
@@ -18,14 +17,9 @@ Here is the example:
 command = "vlc.exe"
 subcommands = ["play-and-exit", "fullscreen"]
 filetypes = ["mp4", "mkv"]
-
-[[custom]]
-command = "foobar2000.exe"
-subcommands = []
-filetypes = ["mp3", "flac", "wav"]
 ```
 
-## Frame
+## Source
 
 Here is its minimal frame (src/main.rs):
 
